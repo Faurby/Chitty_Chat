@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package ChittyChatService;
+option go_package = "ChittyChatService/;ChittyChatService";
+
+service ChittyChatService {
+ 
+}
