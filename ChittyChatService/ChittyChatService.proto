@@ -3,6 +3,16 @@ syntax = "proto3";
 package ChittyChatService;
 option go_package = "ChittyChatService/;ChittyChatService";
 
-service ChittyChatService {
- 
+message FromClient {
+    string name = 1;
+    string body = 2;
 }
+
+message FromServer {
+    string name = 1;
+    string body = 2;
+}
+
+service ChittyChatService {
+    rpc ChittyChatService(stream FromClient) returns (stream FromServer){};
+ }
