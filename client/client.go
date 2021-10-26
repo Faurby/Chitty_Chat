@@ -1,20 +1,20 @@
 package main
 
 import (
+	Chat "Chitty_Chat/Chat"
 	"bufio"
 	"context"
 	"fmt"
 	"log"
 	"os"
 	"strings"
-
-	"Chitty_Chat/Chat"
+	"time"
 
 	"google.golang.org/grpc"
 )
 
 type clientHandle struct {
-	stream     ChittyChatService.ChittyChatService_GetServerStreamClient
+	stream     Chat.ChittyChatService_GetServerStreamClient
 	clientName string
 }
 
@@ -30,7 +30,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	client := ChittyChatService.NewChittyChatServiceClient(conn)
+	client := Chat.NewChittyChatServiceClient(conn)
 
 	_stream, err := client.GetServerStream(context.Background())
 	if err != nil {
@@ -45,7 +45,6 @@ func main() {
 	// block main
 	bl := make(chan bool)
 	<-bl
-
 }
 
 // Assign name
@@ -73,7 +72,7 @@ func (ch *clientHandle) sendMessage() {
 			continue
 		}
 
-		clientMessageBox := &ChittyChatService.FromClient{
+		clientMessageBox := &Chat.FromClient{
 			Name: ch.clientName,
 			Body: clientMessage,
 		}
@@ -83,9 +82,8 @@ func (ch *clientHandle) sendMessage() {
 		if err != nil {
 			log.Printf("Error while sending to server :: %v", err)
 		}
-
+		time.Sleep(500 * time.Millisecond)
 	}
-
 }
 
 func (ch *clientHandle) receiveMessage() {

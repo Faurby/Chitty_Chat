@@ -4,7 +4,8 @@ import (
 	Chat "Chitty_Chat/Chat"
 	"log"
 	"net"
-	"time"
+	"os"
+	"strconv"
 
 	"google.golang.org/grpc"
 )
@@ -13,7 +14,8 @@ type ChatServer struct {
 	Chat.UnimplementedChittyChatServiceServer
 }
 
-var messageList []*Chat.FromClient
+var userAmount int
+var users = make(map[string]Chat.ChittyChatService_GetServerStreamServer)
 
 func main() {
 	listen, err := net.Listen("tcp", ":8007")
@@ -39,58 +41,40 @@ func main() {
 //ChatService
 func (is *ChatServer) GetServerStream(ccsi Chat.ChittyChatService_GetServerStreamServer) error {
 
-	// receive request <<< client
-	go receiveFromStream(ccsi)
+	userID := userAmount + 1
+	userAmount++
 
-	//stream >>> client
-	errch := make(chan error)
-	go sendToStream(ccsi, errch)
+	users[strconv.Itoa(userID)] = ccsi
 
-	return <-errch
-}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("panic: %v", err)
+			os.Exit(1)
+		}
+	}()
 
-// receive from stream
-func receiveFromStream(ccsi_ Chat.ChittyChatService_GetServerStreamServer) {
 	for {
-		req, err := ccsi_.Recv()
-		if err != nil {
-			log.Printf("Error reciving request from client :: %v", err)
+		input, error := ccsi.Recv()
+		if error != nil {
+			log.Fatalln("Fatal error:", error)
 			break
-
-		} else {
-			messageList = append(messageList, req)
-			log.Printf("%v", len(messageList))
 		}
+
+		Broadcast(input)
 	}
+	return nil
 }
 
-//send to stream
-func sendToStream(ccsi_ Chat.ChittyChatService_GetServerStreamServer, errch_ chan error) {
-	for {
+func Broadcast(msg *Chat.FromClient) {
+	name := msg.Name
+	body := msg.Body
 
-		for {
+	log.Println(name + ": " + body)
 
-			time.Sleep(500 * time.Millisecond)
-
-			if len(messageList) == 0 {
-				break
-			}
-
-			message := messageList[0]
-
-			err := ccsi_.Send(&Chat.FromServer{Name: message.Name, Body: message.Body})
-
-			if err != nil {
-				errch_ <- err
-			}
-
-			if len(messageList) >= 2 {
-				messageList = messageList[1:]
-			} else {
-				messageList = []*Chat.FromClient{}
-			}
+	for key, value := range users {
+		err := value.Send(&Chat.FromServer{Name: name, Body: body})
+		if err != nil {
+			log.Println("Failed to broadcast to "+key+": ", err)
 		}
-
-		time.Sleep(1 * time.Second)
 	}
 }
