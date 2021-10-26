@@ -12,7 +12,7 @@ type ChatServer struct {
 var messageList []*FromClient
 
 //ChatService
-func (is *ChatServer) ChittyChatService(ccsi ChittyChatService_ChittyChatServiceServer) error {
+func (is *ChatServer) GetServerStream(ccsi ChittyChatService_GetServerStreamServer) error {
 
 	// receive request <<< client
 	go receiveFromStream(ccsi)
@@ -25,7 +25,7 @@ func (is *ChatServer) ChittyChatService(ccsi ChittyChatService_ChittyChatService
 }
 
 // receive from stream
-func receiveFromStream(ccsi_ ChittyChatService_ChittyChatServiceServer) {
+func receiveFromStream(ccsi_ ChittyChatService_GetServerStreamServer) {
 	for {
 		req, err := ccsi_.Recv()
 		if err != nil {
@@ -40,7 +40,7 @@ func receiveFromStream(ccsi_ ChittyChatService_ChittyChatServiceServer) {
 }
 
 //send to stream
-func sendToStream(ccsi_ ChittyChatService_ChittyChatServiceServer, errch_ chan error) {
+func sendToStream(ccsi_ ChittyChatService_GetServerStreamServer, errch_ chan error) {
 	for {
 
 		for {

@@ -4,17 +4,17 @@ import (
 	"log"
 	"net"
 
-	"Chitty_Chat/ChittyChatService"
+	"Chitty_Chat/Chat"
 
 	"google.golang.org/grpc"
 )
 
 func main() {
-	listen, err := net.Listen("tcp", ":8008")
+	listen, err := net.Listen("tcp", ":8007")
 	if err != nil {
-		log.Fatalf("Failed to listen on port 8008: %v", err)
+		log.Fatalf("Failed to listen on port 8007: %v", err)
 	}
-	log.Println(":8008 is listening")
+	log.Println(":8007 is listening")
 
 	// Creates empty gRPC server
 	grpcServer := grpc.NewServer()

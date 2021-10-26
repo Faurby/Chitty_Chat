@@ -8,19 +8,19 @@ import (
 	"os"
 	"strings"
 
-	"Chitty_Chat/ChittyChatService"
+	"Chitty_Chat/Chat"
 
 	"google.golang.org/grpc"
 )
 
 type clientHandle struct {
-	stream     ChittyChatService.ChittyChatService_ChittyChatServiceClient
+	stream     ChittyChatService.ChittyChatService_GetServerStreamClient
 	clientName string
 }
 
 func main() {
 
-	const serverID = "localhost:8008"
+	const serverID = "localhost:8007"
 
 	log.Println("Connecting : " + serverID)
 	conn, err := grpc.Dial(serverID, grpc.WithInsecure())
@@ -32,7 +32,7 @@ func main() {
 
 	client := ChittyChatService.NewChittyChatServiceClient(conn)
 
-	_stream, err := client.ChittyChatService(context.Background())
+	_stream, err := client.GetServerStream(context.Background())
 	if err != nil {
 		log.Fatalf("Failed to get response from gRPC server :: %v", err)
 	}
