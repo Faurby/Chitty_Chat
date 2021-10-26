@@ -41,27 +41,31 @@ func receiveFromStream(ccsi_ ChittyChatService_ChittyChatServiceServer) {
 
 //send to stream
 func sendToStream(ccsi_ ChittyChatService_ChittyChatServiceServer, errch_ chan error) {
-	// for {
-
 	for {
 
-		time.Sleep(500 * time.Millisecond)
+		for {
 
-		message := messageList[0]
+			time.Sleep(500 * time.Millisecond)
 
-		err := ccsi_.Send(&FromServer{Name: message.Name, Body: message.Body})
+			if len(messageList) == 0 {
+				break
+			}
 
-		if err != nil {
-			errch_ <- err
+			message := messageList[0]
+
+			err := ccsi_.Send(&FromServer{Name: message.Name, Body: message.Body})
+
+			if err != nil {
+				errch_ <- err
+			}
+
+			if len(messageList) >= 2 {
+				messageList = messageList[1:]
+			} else {
+				messageList = []*FromClient{}
+			}
 		}
 
-		if len(messageList) >= 2 {
-			messageList = messageList[1:]
-		} else {
-			messageList = []*FromClient{}
-		}
+		time.Sleep(1 * time.Second)
 	}
-
-	// 	time.Sleep(1 * time.Second)
-	// }
 }

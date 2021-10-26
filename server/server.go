@@ -18,12 +18,14 @@ func main() {
 
 	// Creates empty gRPC server
 	grpcServer := grpc.NewServer()
+
+	// Creates instance of our ChittyChatServer struct and binds it with our empty gRPC server.
+	ccs := ChittyChatService.ChatServer{}
+	ChittyChatService.RegisterChittyChatServiceServer(grpcServer, &ccs)
+
 	err = grpcServer.Serve(listen)
 	if err != nil {
 		log.Fatalf("Failed to start gRPC server :: %v", err)
 	}
 
-	// Creates instance of our ChittyChatServer struct and binds it with our empty gRPC server.
-	ccs := ChittyChatService.ChatServer{}
-	ChittyChatService.RegisterChittyChatServiceServer(grpcServer, &ccs)
 }
