@@ -2,6 +2,7 @@ package main
 
 import (
 	Chat "Chitty_Chat/Chat"
+	"context"
 	"log"
 	"net"
 	"os"
@@ -15,7 +16,7 @@ type ChatServer struct {
 }
 
 var userAmount int
-var users = make(map[string]Chat.ChittyChatService_GetServerStreamServer)
+var users = make(map[string]Chat.ChittyChatService_PublishServer)
 
 func main() {
 	listen, err := net.Listen("tcp", ":8007")
@@ -35,11 +36,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to start gRPC server :: %v", err)
 	}
+}
 
+func (c *ChatServer) JoinChat(ctx context.Context, opts ...grpc.CallOption) (Chat.User, error) {
+
+	userID := userAmount + 1
+	userAmount++
+
+	return Chat.User{Id: int32(userID)}, nil
 }
 
 //ChatService
-func (is *ChatServer) GetServerStream(ccsi Chat.ChittyChatService_GetServerStreamServer) error {
+func (is *ChatServer) Publish(ccsi Chat.ChittyChatService_PublishServer) error {
 
 	userID := userAmount + 1
 	userAmount++

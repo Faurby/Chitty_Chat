@@ -14,7 +14,7 @@ import (
 )
 
 type clientHandle struct {
-	stream     Chat.ChittyChatService_GetServerStreamClient
+	stream     Chat.ChittyChatService_PublishClient
 	clientName string
 }
 
@@ -32,13 +32,18 @@ func main() {
 
 	client := Chat.NewChittyChatServiceClient(conn)
 
-	_stream, err := client.GetServerStream(context.Background())
+	ch := clientHandle{}
+	ch.clientConfig()
+
+	user, err := client.JoinChat(context.Background())
+
+	_stream, err := client.Publish(context.Background())
 	if err != nil {
 		log.Fatalf("Failed to get response from gRPC server :: %v", err)
 	}
 
-	ch := clientHandle{stream: _stream}
-	ch.clientConfig()
+	ch.stream = _stream
+
 	go ch.sendMessage()
 	go ch.receiveMessage()
 
@@ -58,7 +63,6 @@ func (ch *clientHandle) clientConfig() {
 
 	}
 	ch.clientName = strings.TrimRight(msg, "\r\n")
-
 }
 
 func (ch *clientHandle) sendMessage() {
@@ -68,7 +72,7 @@ func (ch *clientHandle) sendMessage() {
 		clientMessage, err := reader.ReadString('\n')
 		clientMessage = strings.TrimRight(clientMessage, "\r\n")
 		if err != nil {
-			log.Printf("Failed to read from console :: %v", err)
+			log.Printf("Failed to read from console : %v", err)
 			continue
 		}
 
@@ -91,7 +95,7 @@ func (ch *clientHandle) receiveMessage() {
 	for {
 		resp, err := ch.stream.Recv()
 		if err != nil {
-			log.Fatalf("can not receive1 %v", err)
+			log.Fatalf("can not receive %v", err)
 		}
 		log.Printf("%s : %s", resp.Name, resp.Body)
 	}
