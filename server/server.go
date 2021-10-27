@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strconv"
 
 	"google.golang.org/grpc"
 )
@@ -15,8 +14,7 @@ type ChatServer struct {
 	Chat.UnimplementedChittyChatServiceServer
 }
 
-var userAmount int
-var users = make(map[string]Chat.ChittyChatService_PublishServer)
+var users = make(map[int32]Chat.ChittyChatService_JoinChatServer)
 
 func main() {
 	listen, err := net.Listen("tcp", ":8007")
@@ -38,21 +36,8 @@ func main() {
 	}
 }
 
-func (c *ChatServer) JoinChat(ctx context.Context, opts ...grpc.CallOption) (Chat.User, error) {
-
-	userID := userAmount + 1
-	userAmount++
-
-	return Chat.User{Id: int32(userID)}, nil
-}
-
-//ChatService
-func (is *ChatServer) Publish(ccsi Chat.ChittyChatService_PublishServer) error {
-
-	userID := userAmount + 1
-	userAmount++
-
-	users[strconv.Itoa(userID)] = ccsi
+func (c *ChatServer) JoinChat(user *Chat.User, ccsi Chat.ChittyChatService_JoinChatServer) error {
+	users[user.Id] = ccsi
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -61,16 +46,26 @@ func (is *ChatServer) Publish(ccsi Chat.ChittyChatService_PublishServer) error {
 		}
 	}()
 
-	for {
-		input, error := ccsi.Recv()
-		if error != nil {
-			log.Fatalln("Fatal error:", error)
-			break
-		}
+	Broadcast(&Chat.FromClient{Name: "ServerMessage", Body: user.Name + " has joined the chat"})
 
-		Broadcast(input)
-	}
+	// block function
+	bl := make(chan bool)
+	<-bl
+
 	return nil
+}
+
+func (s *ChatServer) LeaveChat(ctx context.Context, user *Chat.User) (*Chat.Empty, error) {
+	delete(users, user.Id)
+	// updateTimestamp(int(user.Timestamp))
+	Broadcast(&Chat.FromClient{Name: "ServerMessage", Body: user.Name + " has left the chat"})
+	return &Chat.Empty{}, nil
+}
+
+//ChatService
+func (is *ChatServer) Publish(ctx context.Context, msg *Chat.FromClient) (*Chat.Empty, error) {
+	Broadcast(msg)
+	return &Chat.Empty{}, nil
 }
 
 func Broadcast(msg *Chat.FromClient) {
@@ -82,7 +77,7 @@ func Broadcast(msg *Chat.FromClient) {
 	for key, value := range users {
 		err := value.Send(&Chat.FromServer{Name: name, Body: body})
 		if err != nil {
-			log.Println("Failed to broadcast to "+key+": ", err)
+			log.Println("Failed to broadcast to "+string(key)+": ", err)
 		}
 	}
 }

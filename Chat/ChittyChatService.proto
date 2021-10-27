@@ -27,6 +27,7 @@ message User {
 message Empty {}
 
 service ChittyChatService {
-    rpc JoinChat(stream FromClient) returns (User){};
-    rpc Publish(stream FromClient) returns (stream FromServer){};
+    rpc JoinChat(User) returns (stream FromServer){};
+    rpc Publish(FromClient) returns (Empty){};
+    rpc LeaveChat(User) returns (Empty){}
  }
