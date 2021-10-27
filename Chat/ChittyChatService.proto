@@ -1,18 +1,33 @@
 syntax = "proto3";
 
 package Chat;
-option go_package = "ChittyChatService/;ChittyChatService";
+option go_package = "./Chat";
 
 message FromClient {
     string name = 1;
     string body = 2;
+    int32 lamport = 3;
 }
 
 message FromServer {
     string name = 1;
     string body = 2;
+    int32 lamport = 3;
 }
 
+message UserName {
+    string name = 1;
+}
+
+message User {
+    int32 id = 1;
+    string name = 2;
+}
+
+message Empty {}
+
 service ChittyChatService {
-    rpc GetServerStream(stream FromClient) returns (stream FromServer){};
+    rpc JoinChat(User) returns (stream FromServer){};
+    rpc Publish(FromClient) returns (Empty){};
+    rpc LeaveChat(User) returns (Empty){}
  }
