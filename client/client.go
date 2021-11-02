@@ -16,6 +16,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+var lamport int32
+
 type clientHandle struct {
 	stream     Chat.ChittyChatService_JoinChatClient
 	Id         int32
@@ -23,6 +25,7 @@ type clientHandle struct {
 }
 
 func main() {
+	lamport = 0
 
 	const serverID = "localhost:8007"
 
@@ -42,9 +45,11 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	ch.Id = rand.Int31()
 
+	lamport++
 	var user = &Chat.User{
-		Id:   ch.Id,
-		Name: ch.clientName,
+		Id:      ch.Id,
+		Name:    ch.clientName,
+		Lamport: lamport,
 	}
 
 	_stream, err := client.JoinChat(context.Background(), user)
@@ -87,17 +92,23 @@ func (ch *clientHandle) sendMessage(client Chat.ChittyChatServiceClient) {
 			continue
 		}
 
-		msg := &Chat.FromClient{
-			Name: ch.clientName,
-			Body: clientMessage,
-		}
+		if len(clientMessage) > 0 && len(clientMessage) <= 128 {
+			lamport++
+			msg := &Chat.FromClient{
+				Name:    ch.clientName,
+				Body:    clientMessage,
+				Lamport: int32(lamport),
+			}
 
-		_, err = client.Publish(context.Background(), msg)
-		if err != nil {
-			log.Printf("Error while sending to server :: %v", err)
-		}
+			_, err = client.Publish(context.Background(), msg)
+			if err != nil {
+				log.Printf("Error while sending to server :: %v", err)
+			}
 
-		time.Sleep(500 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
+		} else {
+			log.Print("Your message must be between 1 and 128 characters!")
+		}
 	}
 }
 
@@ -108,7 +119,13 @@ func (ch *clientHandle) receiveMessage() {
 		if err != nil {
 			log.Fatalf("can not receive %v", err)
 		}
-		log.Printf("%s : %s", resp.Name, resp.Body)
+
+		incomingLamport := resp.Lamport
+
+		lamport = max(lamport, incomingLamport)
+		lamport++
+
+		log.Printf("%s [%d] : %s", resp.Name, lamport, resp.Body)
 	}
 }
 
@@ -121,7 +138,16 @@ func SetupCloseHandler(ch clientHandle, client Chat.ChittyChatServiceClient) {
 	go func() {
 		<-c
 		fmt.Println("\r- Ctrl+C pressed in Terminal")
-		client.LeaveChat(context.Background(), &Chat.User{Id: ch.Id, Name: ch.clientName})
+		lamport++
+		client.LeaveChat(context.Background(), &Chat.User{Id: ch.Id, Name: ch.clientName, Lamport: lamport})
 		os.Exit(0)
 	}()
+}
+
+func max(x, y int32) int32 {
+	if x > y {
+		return x
+	} else {
+		return y
+	}
 }
